@@ -29,7 +29,7 @@ public class SecurityConfig {
                         // Endpoints publics
                         .requestMatchers("/users/register").permitAll()
 
-                        // Swagger et API Docs - Configuration élargie
+                        // Swagger et API Docs
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
