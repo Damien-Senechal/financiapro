@@ -29,12 +29,26 @@ public class SecurityConfig {
                         // Endpoints publics
                         .requestMatchers("/users/register").permitAll()
 
-                        // Swagger UI - tous les patterns possibles
-                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
-                                "/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
+                        // Swagger et API Docs - Configuration élargie
+                        .requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/index.html",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs.yaml",
+                                "/v3/api-docs",
+                                "/api-docs/**",
+                                "/swagger-resources/**",
+                                "/webjars/**",
+                                "/configuration/**",
+                                "/swagger-config"
+                        ).permitAll()
 
                         // H2 Console
                         .requestMatchers("/h2-console/**").permitAll()
+
+                        // Autoriser les erreurs
+                        .requestMatchers("/error").permitAll()
 
                         // Tous les autres endpoints nécessitent une authentification
                         .anyRequest().authenticated()
