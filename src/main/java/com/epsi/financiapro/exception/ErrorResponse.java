@@ -9,7 +9,6 @@ import java.util.Map;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class ErrorResponse {
     private int status;
     private String message;
