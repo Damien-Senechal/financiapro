@@ -26,8 +26,17 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/users/register", "/swagger-ui/**", "/api-docs/**",
-                                "/h2-console/**").permitAll()
+                        // Endpoints publics
+                        .requestMatchers("/users/register").permitAll()
+
+                        // Swagger UI - tous les patterns possibles
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
+                                "/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
+
+                        // H2 Console
+                        .requestMatchers("/h2-console/**").permitAll()
+
+                        // Tous les autres endpoints nécessitent une authentification
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(apiKeyAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

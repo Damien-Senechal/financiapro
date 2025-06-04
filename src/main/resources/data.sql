@@ -43,9 +43,3 @@ INSERT INTO loan_requests (id, borrower_id, lender_id, montant, interet, duree, 
 INSERT INTO repayments (id, loan_request_id, montant, date, commentaire) VALUES
 (1, 1, 100.00, '2025-06-01', 'Premier remboursement'),
 (2, 1, 50.00, '2025-06-15', 'Remboursement partiel');
-
--- Mise à jour des séquences
-ALTER SEQUENCE users_id_seq RESTART WITH 5;
-ALTER SEQUENCE budget_items_id_seq RESTART WITH 13;
-ALTER SEQUENCE loan_requests_id_seq RESTART WITH 4;
-ALTER SEQUENCE repayments_id_seq RESTART WITH 3;
