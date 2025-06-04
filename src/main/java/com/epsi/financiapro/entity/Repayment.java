@@ -3,6 +3,7 @@ package com.epsi.financiapro.entity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
@@ -23,6 +24,7 @@ public class Repayment {
     @JoinColumn(name = "loan_request_id", nullable = false)
     private LoanRequest loanRequest;
 
+    @Getter
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal montant;
 
@@ -31,4 +33,9 @@ public class Repayment {
 
     @Column(length = 500)
     private String commentaire;
+
+    public BigDecimal getMontant() {
+        return montant;
+    }
+
 }

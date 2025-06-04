@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -54,5 +55,9 @@ public class User {
         if (this.apiKey == null) {
             this.apiKey = UUID.randomUUID().toString();
         }
+    }
+
+    public Long getId() {
+        return id;
     }
 }
