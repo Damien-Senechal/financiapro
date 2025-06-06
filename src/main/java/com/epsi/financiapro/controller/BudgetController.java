@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/budget")
@@ -86,15 +87,16 @@ public class BudgetController {
     }
 
     @GetMapping("/simulate/{months}")
-    @Operation(summary = "Simuler le budget futur",
-            description = "Simule l'évolution du budget sur un nombre de mois donné")
+    @Operation(summary = "Simuler l'évolution du budget",
+            description = "Simule l'évolution mensuelle du budget avec calcul des soldes cumulés et alertes")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Simulation réussie"),
             @ApiResponse(responseCode = "401", description = "Non authentifié")
     })
-    public ResponseEntity<List<BudgetItemDTO>> simulateBudget(
+    public ResponseEntity<Map<String, Object>> simulateBudget(
             @Parameter(description = "Nombre de mois à simuler") @PathVariable int months) {
-        List<BudgetItemDTO> simulation = (List<BudgetItemDTO>) budgetService.simulateBudget(months);
+
+        Map<String, Object> simulation = budgetService.simulateBudget(months);
         return ResponseEntity.ok(simulation);
     }
 }

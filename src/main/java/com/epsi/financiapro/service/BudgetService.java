@@ -142,13 +142,13 @@ public class BudgetService {
         BigDecimal variationTotale = soldeCumule.subtract(currentSummary.getSoldeGlobal());
 
         if (soldeCumule.compareTo(currentSummary.getSoldeGlobal()) > 0) {
-            alertes.add("📈 Tendance positive : +" + variationTotale + "€ prévus dans " + months + " mois");
+            alertes.add("Tendance positive : +" + variationTotale + "€ prévus dans " + months + " mois");
         } else {
-            alertes.add("📉 Attention : " + variationTotale + "€ prévus dans " + months + " mois");
+            alertes.add("Attention : " + variationTotale + "€ prévus dans " + months + " mois");
         }
 
         if (avgIncome.subtract(avgExpense).compareTo(BigDecimal.ZERO) > 0) {
-            alertes.add("💰 Épargne mensuelle moyenne : " + avgIncome.subtract(avgExpense) + "€");
+            alertes.add("Épargne mensuelle moyenne : " + avgIncome.subtract(avgExpense) + "€");
         }
 
         // Construire la réponse complète
