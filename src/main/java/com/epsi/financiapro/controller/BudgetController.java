@@ -94,7 +94,7 @@ public class BudgetController {
     })
     public ResponseEntity<List<BudgetItemDTO>> simulateBudget(
             @Parameter(description = "Nombre de mois à simuler") @PathVariable int months) {
-        List<BudgetItemDTO> simulation = budgetService.simulateBudget(months);
+        List<BudgetItemDTO> simulation = (List<BudgetItemDTO>) budgetService.simulateBudget(months);
         return ResponseEntity.ok(simulation);
     }
 }

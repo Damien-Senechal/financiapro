@@ -2,6 +2,7 @@ package com.epsi.financiapro.service;
 
 import com.epsi.financiapro.dto.BudgetItemCreateDTO;
 import com.epsi.financiapro.dto.BudgetItemDTO;
+import com.epsi.financiapro.dto.BudgetSummaryDTO;
 import com.epsi.financiapro.entity.BudgetItem;
 import com.epsi.financiapro.entity.User;
 import com.epsi.financiapro.repository.BudgetItemRepository;
@@ -10,8 +11,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,13 +26,15 @@ public class BudgetService {
 
     private final BudgetItemRepository budgetItemRepository;
     private final CurrentUserService currentUserService;
+    private final UserService userService;
     private final ModelMapper modelMapper;
 
     public BudgetService(BudgetItemRepository budgetItemRepository,
-                         CurrentUserService currentUserService,
+                         CurrentUserService currentUserService, UserService userService,
                          ModelMapper modelMapper) {
         this.budgetItemRepository = budgetItemRepository;
         this.currentUserService = currentUserService;
+        this.userService = userService;
         this.modelMapper = modelMapper;
     }
 
@@ -94,30 +102,85 @@ public class BudgetService {
         budgetItemRepository.delete(item);
     }
 
-    public List<BudgetItemDTO> simulateBudget(int months) {
+    public Map<String, Object> simulateBudget(int months) {
         User user = currentUserService.getCurrentUser();
         LocalDate today = LocalDate.now();
 
-        // Récupérer les éléments récurrents du dernier mois
-        LocalDate lastMonthStart = today.minusMonths(1);
-        List<BudgetItem> lastMonthItems = budgetItemRepository
-                .findByUserAndDateBetween(user, lastMonthStart, today);
+        // Récupérer le résumé actuel
+        BudgetSummaryDTO currentSummary = userService.getBudgetSummary();
 
-        // Créer des projections pour les mois futurs
-        List<BudgetItemDTO> projections = lastMonthItems.stream()
-                .flatMap(item -> {
-                    // Créer une projection pour chaque mois futur
-                    return java.util.stream.IntStream.range(1, months + 1)
-                            .mapToObj(month -> {
-                                BudgetItemDTO projection = modelMapper.map(item, BudgetItemDTO.class);
-                                projection.setId(null); // Ce sont des projections, pas de vrais éléments
-                                projection.setDate(item.getDate().plusMonths(month));
-                                projection.setDescription("[PROJECTION] " + item.getDescription());
-                                return projection;
-                            });
-                })
-                .collect(Collectors.toList());
+        // Calculer les moyennes des 3 derniers mois
+        LocalDate threeMonthsAgo = today.minusMonths(3);
+        List<BudgetItem> recentItems = budgetItemRepository
+                .findByUserAndDateBetween(user, threeMonthsAgo, today);
 
-        return projections;
+        BigDecimal avgIncome = calculateAverage(recentItems, BudgetItem.BudgetType.INCOME);
+        BigDecimal avgExpense = calculateAverage(recentItems, BudgetItem.BudgetType.EXPENSE);
+
+        // Créer les projections mensuelles
+        List<Map<String, Object>> projections = new ArrayList<>();
+        BigDecimal soldeCumule = currentSummary.getSoldeGlobal();
+
+        for (int i = 1; i <= months; i++) {
+            Map<String, Object> monthProjection = new HashMap<>();
+            LocalDate targetDate = today.plusMonths(i);
+
+            BigDecimal soldeMensuel = avgIncome.subtract(avgExpense);
+            soldeCumule = soldeCumule.add(soldeMensuel);
+
+            monthProjection.put("mois", targetDate.format(DateTimeFormatter.ofPattern("yyyy-MM")));
+            monthProjection.put("revenus", avgIncome);
+            monthProjection.put("depenses", avgExpense);
+            monthProjection.put("soldeMensuel", soldeMensuel);
+            monthProjection.put("soldeCumule", soldeCumule);
+
+            projections.add(monthProjection);
+        }
+
+        // Générer des insights et alertes
+        List<String> alertes = new ArrayList<>();
+        BigDecimal variationTotale = soldeCumule.subtract(currentSummary.getSoldeGlobal());
+
+        if (soldeCumule.compareTo(currentSummary.getSoldeGlobal()) > 0) {
+            alertes.add("📈 Tendance positive : +" + variationTotale + "€ prévus dans " + months + " mois");
+        } else {
+            alertes.add("📉 Attention : " + variationTotale + "€ prévus dans " + months + " mois");
+        }
+
+        if (avgIncome.subtract(avgExpense).compareTo(BigDecimal.ZERO) > 0) {
+            alertes.add("💰 Épargne mensuelle moyenne : " + avgIncome.subtract(avgExpense) + "€");
+        }
+
+        // Construire la réponse complète
+        Map<String, Object> response = new HashMap<>();
+        response.put("soldeActuel", currentSummary.getSoldeGlobal());
+        response.put("soldeFinal", soldeCumule);
+        response.put("variationTotale", variationTotale);
+        response.put("moyennesMensuelles", Map.of(
+                "revenus", avgIncome,
+                "depenses", avgExpense,
+                "epargne", avgIncome.subtract(avgExpense)
+        ));
+        response.put("projections", projections);
+        response.put("alertes", alertes);
+        response.put("resume", Map.of(
+                "epargneTotale", variationTotale,
+                "tauxEpargne", avgIncome.compareTo(BigDecimal.ZERO) > 0 ?
+                        avgIncome.subtract(avgExpense).divide(avgIncome, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)) :
+                        BigDecimal.ZERO,
+                "tendance", variationTotale.compareTo(BigDecimal.ZERO) > 0 ? "positive" : "negative"
+        ));
+
+        return response;
+    }
+
+    private BigDecimal calculateAverage(List<BudgetItem> items, BudgetItem.BudgetType type) {
+        BigDecimal total = items.stream()
+                .filter(item -> item.getType() == type)
+                .map(BudgetItem::getMontant)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // Moyenne sur 3 mois, éviter division par zéro
+        return total.divide(BigDecimal.valueOf(3), 2, RoundingMode.HALF_UP);
     }
 }
